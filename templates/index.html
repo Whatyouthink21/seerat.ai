@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<!-- Change the header to: -->
+<header>
+    <h1>Seerat AI</h1>
+    <p>Your helpful AI assistant</p>
+</header>        
+        <div id="chat-box"></div>
+        
+        <form id="chat-form">
+            <input type="text" id="user-input" placeholder="Type your question..." required>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const chatForm = document.getElementById('chat-form');
+        
+        // Add message to chat
+        function addMessage(role, content) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${role}`;
+            msgDiv.innerHTML = content;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Handle form submission
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userInput = document.getElementById('user-input');
+            const question = userInput.value.trim();
+            
+            if (!question) return;
+            
+            // Add user question
+            addMessage('user', question);
+            userInput.value = '';
+            
+            // Add loading indicator
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = 'message bot loading';
+            loadingMsg.innerHTML = 'Seerat AI is thinking...';
+            chatBox.appendChild(loadingMsg);
+            
+            // Get AI response
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `user_input=${encodeURIComponent(question)}`
+                });
+                const data = await response.json();
+                
+                // Remove loading and add response
+                chatBox.removeChild(loadingMsg);
+                addMessage('bot', data.response);
+            } catch (error) {
+                chatBox.removeChild(loadingMsg);
+                addMessage('error', `Error: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>
