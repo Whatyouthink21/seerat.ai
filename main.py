@@ -2,24 +2,27 @@ from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from dotenv import load_dotenv
-import openai
+from openai import OpenAI
 import os
+from dotenv import load_dotenv
 
+# Load environment variables
+load_dotenv()  # Remove this line in production
+
+# Initialize FastAPI
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Load environment variables
-load_dotenv()  # Remove in production
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Initialize OpenAI client
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Neutral system prompt
+# System prompt for Seerat AI
 SYSTEM_PROMPT = "You are Seerat AI, a helpful and friendly assistant."
 
 async def generate_response(user_input: str) -> str:
     try:
-        response = await openai.ChatCompletion.acreate(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -31,7 +34,7 @@ async def generate_response(user_input: str) -> str:
     except Exception as e:
         return f"Error: {str(e)}"
 
-# ... (keep the same route handlers as before)
+# Routes
 @app.get("/", response_class=HTMLResponse)
 async def chat_ui(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -39,3 +42,8 @@ async def chat_ui(request: Request):
 @app.post("/api/chat")
 async def chat(user_input: str = Form(...)):
     return {"response": await generate_response(user_input)}
+
+# Health check endpoint (for Render)
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
